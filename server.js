@@ -205,13 +205,15 @@ app.post("/api/lobbies/:id/progress", (req, res) => {
   const lobby = db.lobbies.find((l) => l.id === req.params.id);
   if (!lobby) return res.status(404).json({ error: "Не найдено" });
 
-  const { userId, score, completedTasks, wrongAttempts } = req.body || {};
+  const { userId, score, completedTasks, wrongAttempts, finishedAt, elapsedMs } = req.body || {};
   const p = lobby.players.find((x) => x.id === userId);
   if (!p) return res.status(404).json({ error: "Игрок не в лобби" });
 
   if (typeof score === "number") p.score = score;
   if (Array.isArray(completedTasks)) p.completedTasks = completedTasks;
   if (wrongAttempts && typeof wrongAttempts === "object") p.wrongAttempts = wrongAttempts;
+  if (finishedAt) p.finishedAt = finishedAt;
+  if (typeof elapsedMs === "number") p.elapsedMs = elapsedMs;
 
   save(db);
   res.json(publicLobby(lobby));
@@ -275,6 +277,8 @@ function resultSummary(l) {
       score: p.score || 0,
       completedTasks: (p.completedTasks || []).length,
       wrongs: sumWrongs(p.wrongAttempts),
+      elapsedMs: p.elapsedMs != null ? p.elapsedMs : null,
+      finishedAt: p.finishedAt || null,
     }));
   const teamScore = players.reduce((s, p) => s + p.score, 0);
   return {
