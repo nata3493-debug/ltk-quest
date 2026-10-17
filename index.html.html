@@ -727,7 +727,8 @@
         tasks: [
           {
             id: 1,
-            title: "1. Старт — Главный корпус",
+            title: "1. Год основания",
+            place: "Главный корпус",
             description: "Точка: главный корпус ЛТК. В каком году основан Лисаковский технический колледж?",
             lat: 52.550781, lng: 62.484739,
             type: "answer", answer: "1996",
@@ -736,7 +737,8 @@
           },
           {
             id: 2,
-            title: "2. Оранжевая сцена",
+            title: "2. Числовая последовательность",
+            place: "Оранжевая сцена",
             description: "Дана последовательность: 1, 3, 7, 15, 31, ?\nКакое следующее число? (каждое = предыдущее × 2 + 1)",
             lat: 52.5505, lng: 62.487418,
             type: "answer", answer: "63",
@@ -745,7 +747,8 @@
           },
           {
             id: 3,
-            title: "3. Общежитие — Судоку",
+            title: "3. Мини-судоку 4×4",
+            place: "Общежитие колледжа",
             description: "Судоку 4×4. Цифры от 1 до 4. В каждой строке, каждом столбце и каждом квадрате 2×2 все цифры разные. Введи верхнюю строку (4 цифры).",
             lat: 52.54951, lng: 62.487945,
             type: "code", answer: "2341",
@@ -755,7 +758,8 @@
           },
           {
             id: 4,
-            title: "4. Стадион — Логика",
+            title: "4. Логическая загадка",
+            place: "Стадион колледжа",
             description: "У трёх студентов: Айдоса, Бекнура и Дамира — специальности Сварщик, Электрик и Программист.\n• Айдос не сварщик и не программист.\n• Бекнур не электрик.\n• Дамир не программист.\nКто программист?",
             lat: 52.549112, lng: 62.485889,
             type: "answer", answer: "БЕКНУР",
@@ -764,7 +768,8 @@
           },
           {
             id: 5,
-            title: "5. Гаражи — Шифр",
+            title: "5. Шифр Цезаря",
+            place: "Гаражи колледжа",
             description: "Сообщение зашифровано сдвигом Цезаря на 3 буквы вперёд. Шифртекст: «ОЛФГНСЕФН»\nРасшифруй (название города, 9 букв).",
             lat: 52.549632, lng: 62.484721,
             type: "answer", answer: "ЛИСАКОВСК",
@@ -773,7 +778,8 @@
           },
           {
             id: 6,
-            title: "6. Точка 6 — Математика",
+            title: "6. Математика",
+            place: "Точка 6",
             description: "Сколько будет: 1996 ÷ 3 × 2 − 100 ?\n(можно округлить до целого)",
             lat: 52.549765, lng: 62.485342,
             type: "answer", answer: "1231",
@@ -782,7 +788,8 @@
           },
           {
             id: 7,
-            title: "7. Финиш — Главный корпус",
+            title: "7. Финальный код",
+            place: "Главный корпус",
             description: "Собери финальный код: первые 2 цифры года основания + аббревиатура колледжа (3 буквы) + число из задания 2 (следующее в последовательности). Без пробелов.",
             lat: 52.550781, lng: 62.484739,
             type: "code", answer: "19ЛТК63",
@@ -1307,8 +1314,12 @@
       for (var j = 0; j < currentQuest.tasks.length; j++) {
         var task = currentQuest.tasks[j];
         var done = me && me.completedTasks.indexOf(task.id) !== -1;
+        var prevId = j > 0 ? currentQuest.tasks[j - 1].id : null;
+        var locked = prevId && me && me.completedTasks.indexOf(prevId) === -1;
+        if (locked) continue;
         var m = L.marker([task.lat, task.lng]).addTo(map);
-        m.bindPopup("<b>" + task.title + "</b><br>" + (done ? "✅ Выполнено" : "📍 Задание"));
+        var place = task.place ? task.place : task.title;
+        m.bindPopup("<b>" + place + "</b><br>" + (done ? "✅ Выполнено" : task.title));
         markers.push(m);
       }
       if (navigator.geolocation) {
@@ -1338,19 +1349,26 @@
         var status = done ? "✅ " : (locked ? "🔒 " : "🔑 ");
         var extraClass = done ? "completed" : (locked ? "locked" : "");
         html += '<div class="task-card ' + extraClass + '" data-task="' + task.id + '" data-locked="' + locked + '">';
-        html += "<h4>" + status + task.title + "</h4>";
         if (locked) {
+          html += "<h4>" + status + "Задание " + task.id + "</h4>";
           html += '<p style="font-size:0.9rem;color:var(--muted);">Сначала выполни предыдущее задание</p>';
-        } else if (done) {
-          var nextHint = "";
-          if (j < currentQuest.tasks.length - 1) {
-            nextHint = " → дальше: " + currentQuest.tasks[j + 1].title;
-          } else {
-            nextHint = " — финиш!";
-          }
-          html += '<p style="font-size:0.9rem;color:var(--muted);">✅ Выполнено' + nextHint + '</p>';
         } else {
-          html += '<p style="font-size:0.9rem;color:var(--muted);">Нажми и введи код с точки</p>';
+          html += "<h4>" + status + task.title + "</h4>";
+          if (task.place) {
+            html += '<p style="font-size:0.9rem;color:#a5b4fc;">📍 ' + task.place + "</p>";
+          }
+          if (done) {
+            var nextHint = "";
+            if (j < currentQuest.tasks.length - 1) {
+              var nxt = currentQuest.tasks[j + 1];
+              nextHint = " → дальше: " + (nxt.place ? nxt.place : ("Задание " + nxt.id));
+            } else {
+              nextHint = " — финиш!";
+            }
+            html += '<p style="font-size:0.9rem;color:var(--muted);">✅ Выполнено' + nextHint + '</p>';
+          } else {
+            html += '<p style="font-size:0.9rem;color:var(--muted);">Нажми и введи код с точки</p>';
+          }
         }
         html += '<div class="task-meta"><span>🎯 ' + task.points + ' очков</span><span>🔑 Код</span></div></div>';
       }
@@ -1844,7 +1862,7 @@
         return "Это последнее задание! Квест пройден 🎉";
       }
       var next = currentQuest.tasks[idx + 1];
-      return "Теперь иди к следующей точке: «" + next.title + "» (смотри на карте)";
+      return "Теперь иди к следующей точке: «" + (next.place || next.title) + "» (смотри на карте)";
     }
 
     function centerMapOnNextTask(currentTaskId) {
